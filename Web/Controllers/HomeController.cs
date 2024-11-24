@@ -33,21 +33,32 @@ where a.group_code = @group_code --> MENGGUNAKAN PARAMETER
 order by a.group_code, a.class_code --> ORDER
 
 --offset 20 limit 10 --> PAGING --> MULAI DARI BARIS 21 SEBANYAK 10 BARIS
+offset @offset limit @limit --> PAGING --> MULAI DARI BARIS @offset + 1 SEBANYAK @limit BARIS
 ";
             //var param = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
             //{
             //    Value = (Int16)1
             //};
-
             //cmd.Parameters.Add(param);
 
             NpgsqlParameter param1 = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
             {
                 Value = (Int16)1
             };
-
             cmd.Parameters.Add(param1);
 
+            NpgsqlParameter param2 = new NpgsqlParameter("@offset", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = 0 // SET YOUR OFFSET VALUE (STARTING ROW, E.G., ROW 1)
+            };
+            cmd.Parameters.Add(param2);
+
+            NpgsqlParameter param3 = new NpgsqlParameter("@limit", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = 10 // SET YOUR LIMIT VALUE (NUMBER OF ROWS PER PAGE)
+            };
+            cmd.Parameters.Add(param3);
+            
             //NpgsqlTransaction trans = conn.BeginTransaction();
 
             try
