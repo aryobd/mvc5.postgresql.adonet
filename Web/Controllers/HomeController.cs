@@ -34,10 +34,18 @@ order by a.group_code, a.class_code --> ORDER
 
 --offset 20 limit 10 --> PAGING --> MULAI DARI BARIS 21 SEBANYAK 10 BARIS
 ";
-            //var param = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint) { Value = (Int16)1 };
+            //var param = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
+            //{
+            //    Value = (Int16)1
+            //};
+
             //cmd.Parameters.Add(param);
 
-            NpgsqlParameter param1 = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint) { Value = (Int16)1 };
+            NpgsqlParameter param1 = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
+            {
+                Value = (Int16)1
+            };
+
             cmd.Parameters.Add(param1);
 
             //NpgsqlTransaction trans = conn.BeginTransaction();
@@ -50,7 +58,7 @@ order by a.group_code, a.class_code --> ORDER
                 while (sdr.Read())
                 {
                     CommTrClass itm = new CommTrClass();
-                    itm.group_code = Convert.ToInt32(sdr["group_code"]);
+                    itm.group_code = Convert.ToInt16(sdr["group_code"]);
                     itm.class_code = sdr["class_code"].ToString();
                     itm.class_desc = sdr["class_desc"].ToString();
 
