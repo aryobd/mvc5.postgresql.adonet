@@ -29,42 +29,52 @@ a.meter_size_code
 from comm.tr_class a
 
 where a.group_code = @group_code --> MENGGUNAKAN PARAMETER
+and a.class_code = @class_code --> MENGGUNAKAN PARAMETER
 
 order by a.group_code, a.class_code --> ORDER
 
 --offset 20 limit 10 --> PAGING --> MULAI DARI BARIS 21 SEBANYAK 10 BARIS
 offset @offset limit @limit --> PAGING --> MULAI DARI BARIS @offset + 1 SEBANYAK @limit BARIS
 ";
-            //var param = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
-            //{
-            //    Value = (Int16)1
-            //};
-            //cmd.Parameters.Add(param);
 
             NpgsqlParameter param1 = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
             {
-                Value = (Int16)1
+                Value = (Int16)1 // ASSIGN A VALUE TO THE @group_code PARAMETER
             };
             cmd.Parameters.Add(param1);
 
-            NpgsqlParameter param2 = new NpgsqlParameter("@offset", NpgsqlTypes.NpgsqlDbType.Integer)
+            NpgsqlParameter param2 = new NpgsqlParameter("@class_code", NpgsqlTypes.NpgsqlDbType.Varchar)
             {
-                Value = 0 // SET YOUR OFFSET VALUE (STARTING ROW, E.G., ROW 1)
+                Value = "1A" // ASSIGN A VALUE TO THE @class_code PARAMETER
             };
             cmd.Parameters.Add(param2);
 
-            NpgsqlParameter param3 = new NpgsqlParameter("@limit", NpgsqlTypes.NpgsqlDbType.Integer)
+            NpgsqlParameter param3 = new NpgsqlParameter("@offset", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = 0 // SET YOUR OFFSET VALUE (STARTING ROW, E.G., ROW 1)
+            };
+            cmd.Parameters.Add(param3);
+
+            NpgsqlParameter param4 = new NpgsqlParameter("@limit", NpgsqlTypes.NpgsqlDbType.Integer)
             {
                 Value = 10 // SET YOUR LIMIT VALUE (NUMBER OF ROWS PER PAGE)
             };
-            cmd.Parameters.Add(param3);
+            cmd.Parameters.Add(param4);
             
             //NpgsqlTransaction trans = conn.BeginTransaction();
 
             try
             {
                 NpgsqlDataReader sdr = cmd.ExecuteReader();
-                List<CommTrClass> lst = new List<CommTrClass>();
+                IList<CommTrClass> lst = new List<CommTrClass>();
+
+                // ORDER BY WITH LINQ - QUERY SYNTAX
+                var lst2 = from p in lst
+                           orderby p.class_code descending
+                           select p;
+
+                // ORDER BY WITH LINQ - METHOD SYNTAX
+                var lst3 = lst.OrderByDescending(p => p.class_code);
 
                 while (sdr.Read())
                 {
