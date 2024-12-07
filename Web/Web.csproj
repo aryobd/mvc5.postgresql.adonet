@@ -152,6 +152,7 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\DatabaseService.cs" />
     <Compile Include="Models\CommTrClass.cs" />
     <Compile Include="Models\CommTrGroup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
