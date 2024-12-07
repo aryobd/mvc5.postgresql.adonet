@@ -343,10 +343,15 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
         
         private void SelectAndCrud()
         {
+            /*
             string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["pdam_Entities"].ConnectionString;
 
             // Inisialisasi layanan database
             var dbService = new DatabaseService(connectionString);
+            */
+            
+            // Inisialisasi layanan database
+            var dbService = new DatabaseService();
 
             // **INSERT Data**
             dbService.ExecuteNonQuery(

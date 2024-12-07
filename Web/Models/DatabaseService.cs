@@ -10,7 +10,11 @@ namespace Web.Models
 {
     public class DatabaseService
     {
-        private readonly string _connectionString;
+        private readonly string _connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["pdam_Entities"].ConnectionString;
+
+        public DatabaseService()
+        {
+        }
 
         public DatabaseService(string connectionString)
         {
