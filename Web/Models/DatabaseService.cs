@@ -30,6 +30,7 @@ namespace Web.Models
             using (var cmd = conn.CreateCommand())
             {
                 conn.Open();
+
                 cmd.CommandType = CommandType.Text;
                 cmd.CommandText = sql;
 
@@ -43,6 +44,7 @@ namespace Web.Models
                     }
                 }
             }
+
             return result;
         }
 

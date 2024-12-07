@@ -20,9 +20,9 @@ namespace Web.Controllers
             DeleteData();
             */
 
-            //SelectAndCrud();
+            SelectAndCrud();
 
-            CrudTransaction();
+            //CrudTransaction();
 
             return View();
         }
@@ -56,7 +56,7 @@ order by a.group_code, a.class_code --> ORDER
 --offset 20 limit 10 --> PAGING --> MULAI DARI BARIS 21 SEBANYAK 10 BARIS
 offset @offset limit @limit --> PAGING --> MULAI DARI BARIS @offset + 1 SEBANYAK @limit BARIS
 ";
-            
+
             /*
             NpgsqlParameter param1 = new NpgsqlParameter("@group_code", NpgsqlTypes.NpgsqlDbType.Smallint)
             {
@@ -342,7 +342,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
                 trans.Rollback();
             }
         }
-        
+
         private void SelectAndCrud()
         {
             /*
@@ -351,7 +351,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             // Inisialisasi layanan database
             var dbService = new DatabaseService(connectionString);
             */
-            
+
             // Inisialisasi layanan database
             var dbService = new DatabaseService();
 
@@ -406,7 +406,9 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
                 
                 FROM comm.tr_class
                 
-                WHERE group_code = @group_code
+                WHERE 1 = 1
+                and group_code = @group_code
+                --and class_code = @class_code
                 
                 ORDER BY 
                     CASE 
@@ -427,6 +429,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
                 cmd =>
                 {
                     dbService.AddParameter(cmd, "@group_code", NpgsqlTypes.NpgsqlDbType.Smallint, 6);
+                    dbService.AddParameter(cmd, "@class_code", NpgsqlTypes.NpgsqlDbType.Varchar, "zzz");
                     dbService.AddParameter(cmd, "@offset", NpgsqlTypes.NpgsqlDbType.Integer, 0);
                     dbService.AddParameter(cmd, "@limit", NpgsqlTypes.NpgsqlDbType.Integer, 10);
 
@@ -460,7 +463,9 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
                 
                 FROM comm.tr_class
                 
-                WHERE group_code = @group_code
+                WHERE 1 = 1
+                and group_code = @group_code
+                --and class_code = @class_code
                 
                 ORDER BY {orderByColumn} {orderByDirection}
                 
@@ -472,6 +477,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
                 cmd =>
                 {
                     dbService.AddParameter(cmd, "@group_code", NpgsqlTypes.NpgsqlDbType.Smallint, 6);
+                    dbService.AddParameter(cmd, "@class_code", NpgsqlTypes.NpgsqlDbType.Varchar, "zzz");
                     dbService.AddParameter(cmd, "@offset", NpgsqlTypes.NpgsqlDbType.Integer, 0);
                     dbService.AddParameter(cmd, "@limit", NpgsqlTypes.NpgsqlDbType.Integer, 10);
                 },
@@ -487,9 +493,93 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             );
 
             // Cetak hasilnya
-            foreach (var item in dataList1)
+            foreach (var item in dataList2)
             {
                 Console.WriteLine($"Group: {item.GroupCode}, Class: {item.ClassCode}, Desc: {item.ClassDesc}, Meter Size: {item.MeterSizeCode}");
+            }
+
+
+
+
+
+
+            // WHERE yang dinamis
+
+            // Contoh filter dinamis
+            //var filters = new Dictionary<string, (NpgsqlTypes.NpgsqlDbType, object)>
+            //{
+            //    { "group_code", (NpgsqlTypes.NpgsqlDbType.Smallint, 6) },
+            //    { "class_code", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") },
+            //    { "class_desc", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") }
+            //    // Anda bisa menambahkan lebih banyak filter di sini
+            //};
+
+            // CONTOH TIDAK ADA FILTER --> DATA DIAMBIL SEMUA
+            var filters = new Dictionary<string, (NpgsqlTypes.NpgsqlDbType, object)>
+            {
+            };
+
+            // Parameter dinamis untuk ORDER BY
+            string orderByColumn3 = "group_code"; // Kolom yang ingin diurutkan
+            string orderByDirection3 = "ASC"; // Arah pengurutan
+
+            // Membuat query dinamis dengan ORDER BY dan WHERE yang fleksibel
+            string query3 = @"
+                SELECT
+                group_code, class_code, class_desc, meter_size_code
+                
+                FROM comm.tr_class
+                
+                WHERE 1 = 1
+            ";
+
+            // Menambahkan kondisi WHERE berdasarkan filter dinamis
+            foreach (var filter in filters)
+            {
+                query3 += $" AND {filter.Key} = @{filter.Key}";
+            }
+
+            // Menambahkan ORDER BY dinamis
+            query += $@"
+                ORDER BY {orderByColumn3} {orderByDirection3}
+                
+                OFFSET @offset LIMIT @limit
+            ";
+
+            // Menjalankan query dengan parameter dinamis
+            var dataList3 = dbService.ExecuteQuery(
+                query3,
+                cmd =>
+                {
+                    // Menambahkan parameter dinamis ke dalam command
+                    foreach (var filter in filters)
+                    {
+                        dbService.AddParameter(cmd, $"@{filter.Key}", filter.Value.Item1, filter.Value.Item2);
+                    }
+
+                    // Menambahkan parameter offset dan limit
+                    dbService.AddParameter(cmd, "@offset", NpgsqlTypes.NpgsqlDbType.Integer, 0);
+                    dbService.AddParameter(cmd, "@limit", NpgsqlTypes.NpgsqlDbType.Integer, 10);
+                },
+                reader =>
+                {
+                    // Mengambil data dari reader
+                    return new
+                    {
+                        GroupCode = reader.GetInt16(reader.GetOrdinal("group_code")),
+                        ClassCode = reader.GetString(reader.GetOrdinal("class_code")),
+                        ClassDesc = reader.GetString(reader.GetOrdinal("class_desc")),
+                        MeterSizeCode = reader.IsDBNull(reader.GetOrdinal("meter_size_code")) ?
+                                        (int?)null :
+                                        reader.GetInt32(reader.GetOrdinal("meter_size_code"))
+                    };
+                }
+            );
+
+            // Tampilkan data hasil query (contoh)
+            foreach (var item in dataList3)
+            {
+                Console.WriteLine($"GroupCode: {item.GroupCode}, ClassCode: {item.ClassCode}, ClassDesc: {item.ClassDesc}");
             }
         }
 
@@ -524,7 +614,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
 
                     dbService.AddParameter(cmd, "@update_group_code", NpgsqlTypes.NpgsqlDbType.Smallint, 6);
                     dbService.AddParameter(cmd, "@update_class_code", NpgsqlTypes.NpgsqlDbType.Varchar, "zzz");
-                    dbService.AddParameter(cmd, "@update_class_desc", NpgsqlTypes.NpgsqlDbType.Varchar, "Updated Desc");
+                    dbService.AddParameter(cmd, "@update_class_desc", NpgsqlTypes.NpgsqlDbType.Varchar, "1234567890123456789012345678901234567890"); // MAX 30 CHARS
 
                     cmd.ExecuteNonQuery();
                 });
