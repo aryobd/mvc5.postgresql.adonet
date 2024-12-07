@@ -20,7 +20,9 @@ namespace Web.Controllers
             DeleteData();
             */
 
-            SelectAndCrud();
+            //SelectAndCrud();
+
+            CrudTransaction();
 
             return View();
         }
@@ -488,6 +490,50 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             foreach (var item in dataList1)
             {
                 Console.WriteLine($"Group: {item.GroupCode}, Class: {item.ClassCode}, Desc: {item.ClassDesc}, Meter Size: {item.MeterSizeCode}");
+            }
+        }
+
+        private void CrudTransaction()
+        {
+            var dbService = new DatabaseService();
+
+            try
+            {
+                dbService.ExecuteTransaction(cmd =>
+                {
+                    // Operasi INSERT
+                    cmd.CommandText = @"
+                        INSERT INTO comm.tr_class (group_code, class_code, class_desc, meter_size_code)
+                        VALUES (@group_code, @class_code, @class_desc, @meter_size_code)
+                    ";
+
+                    dbService.AddParameter(cmd, "@group_code", NpgsqlTypes.NpgsqlDbType.Smallint, 6);
+                    dbService.AddParameter(cmd, "@class_code", NpgsqlTypes.NpgsqlDbType.Varchar, "zzz");
+                    dbService.AddParameter(cmd, "@class_desc", NpgsqlTypes.NpgsqlDbType.Varchar, "Sample Desc");
+                    dbService.AddParameter(cmd, "@meter_size_code", NpgsqlTypes.NpgsqlDbType.Smallint, DBNull.Value);
+
+                    cmd.ExecuteNonQuery();
+
+                    // Operasi UPDATE
+                    cmd.CommandText = @"
+                        UPDATE comm.tr_class
+                        SET class_desc = @update_class_desc
+                        WHERE group_code = @update_group_code
+                        AND class_code = @update_class_code
+                    ";
+
+                    dbService.AddParameter(cmd, "@update_group_code", NpgsqlTypes.NpgsqlDbType.Smallint, 6);
+                    dbService.AddParameter(cmd, "@update_class_code", NpgsqlTypes.NpgsqlDbType.Varchar, "zzz");
+                    dbService.AddParameter(cmd, "@update_class_desc", NpgsqlTypes.NpgsqlDbType.Varchar, "Updated Desc");
+
+                    cmd.ExecuteNonQuery();
+                });
+
+                Console.WriteLine("Transaction completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
             }
         }
 

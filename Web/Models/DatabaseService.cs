@@ -21,6 +21,31 @@ namespace Web.Models
             _connectionString = connectionString;
         }
 
+        // Eksekusi SELECT Data
+        public List<T> ExecuteQuery<T>(string sql, Action<NpgsqlCommand> configureParams, Func<IDataReader, T> map)
+        {
+            var result = new List<T>();
+
+            using (var conn = new NpgsqlConnection(_connectionString))
+            using (var cmd = conn.CreateCommand())
+            {
+                conn.Open();
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = sql;
+
+                configureParams?.Invoke(cmd);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result.Add(map(reader));
+                    }
+                }
+            }
+            return result;
+        }
+
         // Eksekusi INSERT, UPDATE, DELETE
         public void ExecuteNonQuery(string sql, Action<NpgsqlCommand> configureParams)
         {
@@ -52,29 +77,33 @@ namespace Web.Models
             }
         }
 
-        // Eksekusi SELECT Data
-        public List<T> ExecuteQuery<T>(string sql, Action<NpgsqlCommand> configureParams, Func<IDataReader, T> map)
+        public void ExecuteTransaction(Action<NpgsqlCommand> executeCommands)
         {
-            var result = new List<T>();
-
             using (var conn = new NpgsqlConnection(_connectionString))
-            using (var cmd = conn.CreateCommand())
             {
                 conn.Open();
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = sql;
 
-                configureParams?.Invoke(cmd);
-
-                using (var reader = cmd.ExecuteReader())
+                using (var trans = conn.BeginTransaction())
+                using (var cmd = conn.CreateCommand())
                 {
-                    while (reader.Read())
+                    cmd.Connection = conn;
+                    cmd.Transaction = trans;
+
+                    try
                     {
-                        result.Add(map(reader));
+                        executeCommands?.Invoke(cmd);
+
+                        trans.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        trans.Rollback();
+
+                        Console.WriteLine($"Transaction failed: {ex.Message}");
+                        throw;
                     }
                 }
             }
-            return result;
         }
 
         // Tambahkan Parameter
