@@ -506,18 +506,18 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             // WHERE yang dinamis
 
             // Contoh filter dinamis
-            //var filters = new Dictionary<string, (NpgsqlTypes.NpgsqlDbType, object)>
-            //{
-            //    { "group_code", (NpgsqlTypes.NpgsqlDbType.Smallint, 6) },
-            //    { "class_code", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") },
-            //    { "class_desc", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") }
-            //    // Anda bisa menambahkan lebih banyak filter di sini
-            //};
-
-            // CONTOH TIDAK ADA FILTER --> DATA DIAMBIL SEMUA
             var filters = new Dictionary<string, (NpgsqlTypes.NpgsqlDbType, object)>
             {
+                { "group_code", (NpgsqlTypes.NpgsqlDbType.Smallint, 6) }//,
+                //{ "class_code", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") },
+                //{ "class_desc", (NpgsqlTypes.NpgsqlDbType.Varchar, "xxx") }
+                // Anda bisa menambahkan lebih banyak filter di sini
             };
+
+            // CONTOH TIDAK ADA FILTER --> DATA DIAMBIL SEMUA
+            //var filters = new Dictionary<string, (NpgsqlTypes.NpgsqlDbType, object)>
+            //{
+            //};
 
             // Parameter dinamis untuk ORDER BY
             string orderByColumn3 = "group_code"; // Kolom yang ingin diurutkan
@@ -540,7 +540,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             }
 
             // Menambahkan ORDER BY dinamis
-            query += $@"
+            string query3Full = query3 + $@"
                 ORDER BY {orderByColumn3} {orderByDirection3}
                 
                 OFFSET @offset LIMIT @limit
@@ -548,7 +548,7 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
 
             // Menjalankan query dengan parameter dinamis
             var dataList3 = dbService.ExecuteQuery(
-                query3,
+                query3Full,
                 cmd =>
                 {
                     // Menambahkan parameter dinamis ke dalam command
@@ -581,6 +581,42 @@ and class_code = @class_code --> MENGGUNAKAN PARAMETER
             {
                 Console.WriteLine($"GroupCode: {item.GroupCode}, ClassCode: {item.ClassCode}, ClassDesc: {item.ClassDesc}");
             }
+
+            // COUNT ALL
+            string query4 = @"
+                SELECT
+                group_code, class_code, class_desc, meter_size_code
+                
+                FROM comm.tr_class
+                
+                WHERE 1 = 1
+            ";
+
+            var countAll = dbService.ExecuteQuery<int>(
+                query4,
+                cmd =>
+                {
+                },
+                reader => reader.GetInt32(0) // Mengambil nilai COUNT(*) dari kolom pertama (index 0)
+            );
+
+            Console.WriteLine($"Total count: {countAll.FirstOrDefault()}");
+
+            // COUNT WITH FILTER
+            var countFilter = dbService.ExecuteQuery<int>(
+                query3,
+                cmd =>
+                {
+                    // Menambahkan parameter dinamis ke dalam command
+                    foreach (var filter in filters)
+                    {
+                        dbService.AddParameter(cmd, $"@{filter.Key}", filter.Value.Item1, filter.Value.Item2);
+                    }
+                },
+                reader => reader.GetInt32(0) // Mengambil nilai COUNT(*) dari kolom pertama (index 0)
+            );
+
+            Console.WriteLine($"Total count: {countFilter.FirstOrDefault()}");
         }
 
         private void CrudTransaction()
