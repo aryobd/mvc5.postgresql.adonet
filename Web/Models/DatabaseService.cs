@@ -21,7 +21,13 @@ namespace Web.Models
             _connectionString = connectionString;
         }
 
-        // Eksekusi SELECT Data
+        // TAMBAHKAN PARAMETER
+        public void AddParameter(NpgsqlCommand cmd, string paramName, NpgsqlTypes.NpgsqlDbType dbType, object value)
+        {
+            cmd.Parameters.Add(new NpgsqlParameter(paramName, dbType) { Value = value ?? DBNull.Value });
+        }
+
+        // EKSEKUSI "SELECT" DATA
         public List<T> ExecuteQuery<T>(string sql, Action<NpgsqlCommand> configureParams, Func<IDataReader, T> map)
         {
             var result = new List<T>();
@@ -48,7 +54,7 @@ namespace Web.Models
             return result;
         }
 
-        // Eksekusi INSERT, UPDATE, DELETE
+        // EKSEKUSI "INSERT"/"UPDATE"/"DELETE"
         public void ExecuteNonQuery(string sql, Action<NpgsqlCommand> configureParams)
         {
             using (var conn = new NpgsqlConnection(_connectionString))
@@ -73,12 +79,51 @@ namespace Web.Models
                     {
                         trans.Rollback();
 
-                        Console.WriteLine("Error: " + ex.Message);
+                        throw;
                     }
                 }
             }
         }
 
+        // EKSEKUSI "INSERT"/"UPDATE"/"DELETE" - MENGEMBALIKAN JUMLAH BARIS YANG TERDAMPAK
+        public int ExecuteNonQuery2(string sql, Action<NpgsqlCommand> configureParams)
+        {
+            int rowsAffected = 0;
+
+            using (var conn = new NpgsqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                using (var trans = conn.BeginTransaction())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.CommandText = sql;
+
+                    configureParams?.Invoke(cmd);
+
+                    try
+                    {
+                        rowsAffected = cmd.ExecuteNonQuery();
+
+                        trans.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        trans.Rollback();
+
+                        throw;
+                    }
+                    finally
+                    {
+                    }
+                }
+            }
+
+            return rowsAffected;
+        }
+
+        // EKSEKUSI "INSERT", "UPDATE", "DELETE" -- ATOMIC
         public void ExecuteTransaction(Action<NpgsqlCommand> executeCommands)
         {
             using (var conn = new NpgsqlConnection(_connectionString))
@@ -101,17 +146,49 @@ namespace Web.Models
                     {
                         trans.Rollback();
 
-                        Console.WriteLine($"Transaction failed: {ex.Message}");
                         throw;
                     }
                 }
             }
         }
 
-        // Tambahkan Parameter
-        public void AddParameter(NpgsqlCommand cmd, string paramName, NpgsqlTypes.NpgsqlDbType dbType, object value)
+        // EKSEKUSI "INSERT", UPDATE", "DELETE" -- ATOMIC - MEMASTIKAN SETIAP OPERASI ADA BARIS DATA YANG TERDAMPAK
+        public void ExecuteTransaction(List<(string query, Action<NpgsqlCommand> configureParams)> actions)
         {
-            cmd.Parameters.Add(new NpgsqlParameter(paramName, dbType) { Value = value ?? DBNull.Value });
+            using (var conn = new NpgsqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                using (var trans = conn.BeginTransaction())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.Connection = conn;
+                    cmd.Transaction = trans;
+
+                    try
+                    {
+                        foreach (var action in actions)
+                        {
+                            cmd.CommandText = action.query;
+
+                            action.configureParams?.Invoke(cmd);
+
+                            int rowsAffected = cmd.ExecuteNonQuery(); // JUMLAH BARIS DATA YANG TERDAMPAK
+
+                            if (rowsAffected <= 0)
+                                throw new Exception($"Execution failed for query: {action.query}");
+                        }
+
+                        trans.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        trans.Rollback();
+
+                        throw;
+                    }
+                }
+            }
         }
     }
 }
